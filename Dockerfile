@@ -1,9 +1,9 @@
-FROM alpine:latest
+FROM alpine:3.9
 
 LABEL maintainer="engenharia@arquivei.com.br"
 
 ENV NGINX_VERSION 1.15.0
-ENV VTS_VERSION 0.1.16
+ENV VTS_VERSION 0.1.18
 ENV VTS_EXPORTER_VERSION 0.10.3
 
 RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
@@ -52,8 +52,9 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
         --with-compat \
         --with-file-aio \
         --with-http_v2_module \
-                --add-module=/usr/src/nginx-module-vts-$VTS_VERSION \
+        --add-module=/usr/src/nginx-module-vts-$VTS_VERSION \
     " \
+&& echo "Adding user and group and installing required build packages" \
     && addgroup -S nginx \
     && adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx \
     && apk add --no-cache --virtual .build-deps \
@@ -70,24 +71,11 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
         gd-dev \
         geoip-dev \
         perl-dev \
+&& echo "Downloading packages" \
     && curl -fSL http://nginx.org/download/nginx-$NGINX_VERSION.tar.gz -o nginx.tar.gz \
-    && curl -fSL http://nginx.org/download/nginx-$NGINX_VERSION.tar.gz.asc  -o nginx.tar.gz.asc \
-    && curl -fSL https://github.com/vozlt/nginx-module-vts/archive/v$VTS_VERSION.tar.gz  -o nginx-modules-vts.tar.gz \
-    && curl -fSL https://github.com/hnlq715/nginx-vts-exporter/releases/download/v$VTS_EXPORTER_VERSION/nginx-vts-exporter-$VTS_EXPORTER_VERSION.linux-amd64.tar.gz  -o nginx-vts-exporter.tar.gz \
-    && export GNUPGHOME="$(mktemp -d)" \
-    && found=''; \
-    for server in \
-        ha.pool.sks-keyservers.net \
-        hkp://keyserver.ubuntu.com:80 \
-        hkp://p80.pool.sks-keyservers.net:80 \
-        pgp.mit.edu \
-    ; do \
-        echo "Fetching GPG key $GPG_KEYS from $server"; \
-        gpg --keyserver "$server" --keyserver-options timeout=10 --recv-keys "$GPG_KEYS" && found=yes && break; \
-    done; \
-    test -z "$found" && echo >&2 "error: failed to fetch GPG key $GPG_KEYS" && exit 1; \
-    gpg --batch --verify nginx.tar.gz.asc nginx.tar.gz \
-    && rm -r "$GNUPGHOME" nginx.tar.gz.asc \
+    && curl -fSL https://github.com/vozlt/nginx-module-vts/archive/v${VTS_VERSION}.tar.gz  -o nginx-modules-vts.tar.gz \
+    && curl -fSL https://github.com/hnlq715/nginx-vts-exporter/releases/download/v${VTS_EXPORTER_VERSION}/nginx-vts-exporter-${VTS_EXPORTER_VERSION}.linux-amd64.tar.gz  -o nginx-vts-exporter.tar.gz \
+&& echo "Building nginx" \
     && mkdir -p /usr/src \
     && tar -zxC /usr/src -f nginx.tar.gz \
     && tar -zxC /usr/src -f nginx-modules-vts.tar.gz \
@@ -106,6 +94,7 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
     && ./configure $CONFIG \
     && make -j$(getconf _NPROCESSORS_ONLN) \
     && make install \
+&& echo "Installing modules and default files for nginx" \
     && rm -rf /etc/nginx/html/ \
     && mkdir /etc/nginx/conf.d/ \
     && mkdir -p /usr/share/nginx/html/ \
@@ -118,13 +107,15 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
     && install -m755 objs/ngx_http_perl_module-debug.so /usr/lib/nginx/modules/ngx_http_perl_module-debug.so \
     && install -m755 objs/ngx_stream_geoip_module-debug.so /usr/lib/nginx/modules/ngx_stream_geoip_module-debug.so \
     && ln -s ../../usr/lib/nginx/modules /etc/nginx/modules \
+&& echo "Cleaning packages" \
     && strip /usr/sbin/nginx* \
     && strip /usr/lib/nginx/modules/*.so \
     && rm -rf /usr/src/nginx-$NGINX_VERSION \
     && rm -rf /usr/src/nginx-vts-exporter-$VTS_EXPORTER_VERSION.linux-amd64 \
-    && wget -q http://geolite.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz -O /tmp/GeoIP.dat.gz \
-    && gunzip /tmp/GeoIP.dat.gz && mv /tmp/GeoIP.dat /usr/share/GeoIP \
-    && wget -q http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz -O /tmp/GeoCity.dat.gz \
+&& echo "Downloading GeoIP database" \
+    && wget -q https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.tar.gz -O /tmp/GeoCountry.dat.gz \
+    && gunzip /tmp/GeoCountry.dat.gz && mv /tmp/GeoCountry.dat /usr/share/GeoIP \
+    && wget -q https://geolite.maxmind.com/download/geoip/database/GeoLite2-City.tar.gz -O /tmp/GeoCity.dat.gz \
     && gunzip /tmp/GeoCity.dat.gz && mv /tmp/GeoCity.dat /usr/share/GeoIP \
     \
     # Bring in gettext so we can get `envsubst`, then throw
