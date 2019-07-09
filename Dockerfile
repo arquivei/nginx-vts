@@ -2,9 +2,32 @@ FROM alpine:3.9
 
 LABEL maintainer="engenharia@arquivei.com.br"
 
+ENV MAXMIND_VERSION=1.3.2
 ENV NGINX_VERSION 1.17.1
 ENV VTS_VERSION 0.1.18
 ENV VTS_EXPORTER_VERSION 0.10.3
+
+# Install libmaxminddb and ngx_http_geoip2_module
+
+RUN echo "Downloading GeoIP database" \
+    && mkdir -p /usr/share/geoip \
+    && wget -P /usr/share/geoip https://geolite.maxmind.com/download/geoip/database/GeoLite2-City.mmdb.gz \
+    && wget -P /usr/share/geoip https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.mmdb.gz \
+    && gunzip /usr/share/geoip/*.mmdb.gz
+
+RUN set -x \
+  && apk add --no-cache --virtual .build-deps \
+    alpine-sdk \
+    perl \
+  && git clone https://github.com/leev/ngx_http_geoip2_module /usr/src/ngx_http_geoip2_module \
+  && wget https://github.com/maxmind/libmaxminddb/releases/download/${MAXMIND_VERSION}/libmaxminddb-${MAXMIND_VERSION}.tar.gz \
+  && tar xf libmaxminddb-${MAXMIND_VERSION}.tar.gz \
+  && cd libmaxminddb-${MAXMIND_VERSION} \
+  && ./configure \
+  && make \
+  && make check \
+  && make install \
+  && apk del .build-deps
 
 RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
     && CONFIG="\
@@ -52,6 +75,7 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
         --with-compat \
         --with-file-aio \
         --with-http_v2_module \
+        --add-dynamic-module=/usr/src/ngx_http_geoip2_module \
         --add-module=/usr/src/nginx-module-vts-$VTS_VERSION \
     " \
 && echo "Adding user and group and installing required build packages" \
@@ -112,11 +136,6 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
     && strip /usr/lib/nginx/modules/*.so \
     && rm -rf /usr/src/nginx-$NGINX_VERSION \
     && rm -rf /usr/src/nginx-vts-exporter-$VTS_EXPORTER_VERSION.linux-amd64 \
-&& echo "Downloading GeoIP database" \
-    && wget -q https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.tar.gz -O /tmp/GeoCountry.dat.gz \
-    && gunzip /tmp/GeoCountry.dat.gz && mv /tmp/GeoCountry.dat /usr/share/GeoIP \
-    && wget -q https://geolite.maxmind.com/download/geoip/database/GeoLite2-City.tar.gz -O /tmp/GeoCity.dat.gz \
-    && gunzip /tmp/GeoCity.dat.gz && mv /tmp/GeoCity.dat /usr/share/GeoIP \
     \
     # Bring in gettext so we can get `envsubst`, then throw
     # the rest away. To do this, we need to install `gettext`
@@ -149,4 +168,3 @@ EXPOSE 80 443
 STOPSIGNAL SIGTERM
 
 CMD ["/run.sh"]
-
