@@ -1,20 +1,17 @@
-FROM alpine:3.9
+FROM alpine:3.11
 
 LABEL maintainer="engenharia@arquivei.com.br"
 
+# https://github.com/maxmind/libmaxminddb/releases/
 ENV MAXMIND_VERSION=1.3.2
-ENV NGINX_VERSION 1.17.5
+# https://nginx.org/download
+ENV NGINX_VERSION 1.18.0
+# https://github.com/vozlt/nginx-module-vts/releases
 ENV VTS_VERSION 0.1.18
+# https://github.com/hnlq715/nginx-vts-exporter/releases
 ENV VTS_EXPORTER_VERSION 0.10.3
 
 # Install libmaxminddb and ngx_http_geoip2_module
-
-RUN echo "Downloading GeoIP database" \
-    && mkdir -p /usr/share/geoip \
-    && wget -P /usr/share/geoip https://geolite.maxmind.com/download/geoip/database/GeoLite2-City.mmdb.gz \
-    && wget -P /usr/share/geoip https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.mmdb.gz \
-    && gunzip /usr/share/geoip/*.mmdb.gz
-
 RUN set -x \
   && apk add --no-cache --virtual .build-deps \
     alpine-sdk \
@@ -96,7 +93,7 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
         geoip-dev \
         perl-dev \
 && echo "Downloading packages" \
-    && curl -fSL http://nginx.org/download/nginx-$NGINX_VERSION.tar.gz -o nginx.tar.gz \
+    && curl -fSL https://nginx.org/download/nginx-$NGINX_VERSION.tar.gz -o nginx.tar.gz \
     && curl -fSL https://github.com/vozlt/nginx-module-vts/archive/v${VTS_VERSION}.tar.gz  -o nginx-modules-vts.tar.gz \
     && curl -fSL https://github.com/hnlq715/nginx-vts-exporter/releases/download/v${VTS_EXPORTER_VERSION}/nginx-vts-exporter-${VTS_EXPORTER_VERSION}.linux-amd64.tar.gz  -o nginx-vts-exporter.tar.gz \
 && echo "Building nginx" \
@@ -160,6 +157,8 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
     && ln -sf /dev/stdout /var/log/nginx/access.log \
     && ln -sf /dev/stderr /var/log/nginx/error.log
 
+COPY GeoLite2-City.mmdb /usr/share/geoip/
+COPY GeoLite2-Country.mmdb /usr/share/geoip/
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY run.sh /run.sh
 
