@@ -1,15 +1,15 @@
-FROM alpine:3.11
+FROM alpine:3.13
 
 LABEL maintainer="engenharia@arquivei.com.br"
 
 # https://github.com/maxmind/libmaxminddb/releases/
 ENV MAXMIND_VERSION=1.3.2
 # https://nginx.org/download
-ENV NGINX_VERSION 1.18.0
+ENV NGINX_VERSION 1.19.3
 # https://github.com/vozlt/nginx-module-vts/releases
 ENV VTS_VERSION 0.1.18
 # https://github.com/hnlq715/nginx-vts-exporter/releases
-ENV VTS_EXPORTER_VERSION 0.10.3
+ENV VTS_EXPORTER_VERSION 0.10.7
 
 # Install libmaxminddb and ngx_http_geoip2_module
 RUN set -x \
