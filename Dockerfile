@@ -1,9 +1,9 @@
-FROM alpine:3.11
+FROM alpine:3.13
 
 LABEL maintainer="engenharia@arquivei.com.br"
 
 # https://github.com/maxmind/libmaxminddb/releases/
-ENV MAXMIND_VERSION=1.3.2
+ENV MAXMIND_VERSION=1.6.0
 # https://nginx.org/download
 ENV NGINX_VERSION 1.18.0
 # https://github.com/vozlt/nginx-module-vts/releases

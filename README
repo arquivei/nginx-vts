@@ -1,5 +1,5 @@
 # Nginx + VTS module + Prometheus Exporter
 
-This project aims to provide a clean image Alpine based of Nginx with the VTS module (https://github.com/vozlt/nginx-module-vts) and the prometheus exporter (https://github.com/hnlq715/nginx-vts-exporter)
-
-
+This project aims to provide a clean image Alpine based of Nginx with the
+VTS module (https://github.com/vozlt/nginx-module-vts) and the prometheus
+exporter (https://github.com/hnlq715/nginx-vts-exporter)
