@@ -5,7 +5,7 @@ LABEL maintainer="engenharia@arquivei.com.br"
 # https://github.com/maxmind/libmaxminddb/releases/
 ENV MAXMIND_VERSION=1.6.0
 # https://nginx.org/download
-ENV NGINX_VERSION 1.19.9
+ENV NGINX_VERSION 1.21.0
 # https://github.com/vozlt/nginx-module-vts/releases
 ENV VTS_VERSION 0.1.18
 # https://github.com/hnlq715/nginx-vts-exporter/releases
